@@ -26,8 +26,8 @@ router.get('/tasks',async (req,res) =>
 {
     try
     {
-        const users = await Task.find({})
-        res.status(200).send(users)
+        const tasks = await Task.find({})
+        res.status(200).send(tasks)
     }
     catch(e)
     {
@@ -79,7 +79,13 @@ router.patch('/tasks/:id',async (req,res) =>
     }
     try
     {
-        const task = await Task.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true})
+        //const task = await Task.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true})
+        const task = await Task.findById(req.params.id)
+        updates.forEach((update) =>
+        {
+            task[update] = req.body[update]
+        })
+        await task.save()
         if(!task)
             return res.status(404).send()
         res.status(200).send(task)
@@ -95,7 +101,7 @@ router.delete('/tasks/:id',async (req,res) =>
         const task = await Task.findByIdAndDelete(req.params.id)
         if(!task)
         {
-            res.status(404).send()
+            return res.status(404).send()
         }
         res.send(task)
     }
