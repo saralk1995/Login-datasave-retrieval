@@ -42,7 +42,7 @@ const userSchema = new mongoose.Schema({   //yaha par alag se schema banakar use
             }
         }
 
-    },
+    },  
     tokens:     //ek token ka arrya decalre kiya jo sare tokens generate honge usko store karke rakh sake
     [
         {
@@ -94,7 +94,7 @@ userSchema.statics.findByCredentials = async (email,password) =>
     return user
 }
 //ye method login router se call hga jwt token generate karne k liye
-//methods are accessible on insatnce of mode
+//methods are accessible on insatnce of model
 userSchema.methods.generateAuthToken = async function()
 {
     const user = this
@@ -107,6 +107,14 @@ userSchema.methods.generateAuthToken = async function()
     return token
 
 } 
-
+userSchema.methods.toJSON = function()   
+{
+    //ye isliye kiya hy jis se jab ham user data send kare to pwd aur token send na ho
+    const user = this
+    const userObject = user.toObject()
+    delete userObject.password
+    delete userObject.tokens
+    return userObject
+}
 const User = mongoose.model('User',userSchema)
 module.exports = User

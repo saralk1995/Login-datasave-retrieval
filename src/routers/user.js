@@ -7,6 +7,8 @@ const router = new express.Router()
 //router ko index.js me load karna hga aur fir use app me add karna hga
 
 //ye wala route signup k liye tha
+//isme token generate hga aur us token se ye hga ki agar apne signup kar liya to login nai karna 
+//hga
 router.post('/users',async (req,res) =>
 {
     const user = new User(req.body)
@@ -37,10 +39,43 @@ router.post('/users/login',async (req,res) =>
     try{
         const user = await User.findByCredentials(req.body.email,req.body.password)    
         const token = await user.generateAuthToken()
+        //jab bhi ham res.send k sath koi object send karte hy to pich JSON.stringfy call hta hy
+        //aur wo fir toJSON call ho jata hy jisme hamne pwd aur token hatane ka code likha hua
         res.send({user,token}) 
     }catch(e)                                           
     {                                                   
         res.status(400).send()
+    }
+})
+//Yaha par wahi token delete karna hy jo unhone login karte waqt authenticate kiya tha
+router.post('/users/logout',auth,async (req,res) =>
+{
+    //yaha par hamne bas wo token jo aya hy auth se hokar usey delete kiya hy original array 
+    //of tokens se
+    try{
+        req.user.tokens = req.user.tokens.filter((token) =>
+        {
+            return token.token != req.token 
+        })
+        await req.user.save()
+        res.send()
+    }
+    catch(e)
+    {
+        res.status(500).send(e)
+    }
+})
+router.post('/users/logoutAll',auth,async (req,res) =>
+{
+    try
+    {
+        req.user.tokens = []
+        await req.user.save()
+        res.send()
+    }
+    catch(e)
+    {
+        res.status(500).send(e)
     }
 })
 router.get('/users/me',auth,async (req,res) =>      //ye route ab sirf apki profile laega agar ap authenticated ho to
@@ -63,32 +98,32 @@ router.get('/users/me',auth,async (req,res) =>      //ye route ab sirf apki prof
     //     res.status(500).send(e)
     // })                               
 })
-router.get('/users/:id',async (req,res) =>   //here you get the id using :id passed in url and use it to search operation in DB
-{
-    const _id = req.params.id
-    try{
-        const user = await User.findById(_id)
-        if(!user)
-            return res.status(500).send(user)
+// router.get('/users/:id',async (req,res) =>   //here you get the id using :id passed in url and use it to search operation in DB
+// {
+//     const _id = req.params.id
+//     try{
+//         const user = await User.findById(_id)
+//         if(!user)
+//             return res.status(500).send(user)
 
-        res.send(user)
-    }
-    catch(e)
-    {
-        res.status(500).send("User not found")
-    }
-    // User.findById(_id).then((user) =>
-    // {
-    //     if(!user)
-    //         return res.status(500).send(user)
+//         res.send(user)
+//     }
+//     catch(e)
+//     {
+//         res.status(500).send("User not found")
+//     }
+//     // User.findById(_id).then((user) =>
+//     // {
+//     //     if(!user)
+//     //         return res.status(500).send(user)
     
-    //     res.send(user)
-    // }).catch((e) =>
-    // {
-    //     res.status(500).send("User not found")
-    // })
-})
-router.patch('/users/:id',async (req,res) =>
+//     //     res.send(user)
+//     // }).catch((e) =>
+//     // {
+//     //     res.status(500).send("User not found")
+//     // }) 
+// })
+router.patch('/users/me',auth,async (req,res) =>
 {
     const updates = Object.keys(req.body) //Object.keys se jo bhi input data aa rha hy req.body k through
     //uski jo keys wala part hota hy wo updates me chala jaega
@@ -111,34 +146,37 @@ router.patch('/users/:id',async (req,res) =>
         //2 isey isliye comment kiya kyunki ye haare mongoose middlleware ko bypass kar ja rha tha
         //to jo encryption hna chaiye password ka update k case me wo nai ho par rha tha
 
-        const user = await User.findById(req.params.id)
+        // const user = await User.findById(req.params.id)
+
         updates.forEach((update) =>
         {
-            user[update] = req.body[update]
+            req.user[update] = req.body[update]
         })
         //ye bracket notation isliye use kiya hy jis se kyunki update ki value dynamic hy
         //update ek traike se name password email kuch bhi ho sakta
-        await user.save() //ab middleware chal jaega
-        if(!user)
-        {
-            return res.status(404).send()
-        }
-        res.send(user) 
+        await req.user.save() //ab middleware chal jaega
+        // if(!user)
+        // {
+        //     return res.status(404).send()
+        // }
+        res.send(req.user) 
     }
     catch(e)
     {
             res.status(400).send(e)
     }
 })
-router.delete('/users/:id',async (req,res) =>
+router.delete('/users/me',auth,async (req,res) =>
 {
     try
     {
-        const user = await User.findByIdAndDelete(req.params.id)
+        //ye req.user._id auth se aa rha hy ab ham usey use karke delete karenge
+        // const user = await User.findByIdAndDelete(req.user._id)
         //is user me jo bhi user delete hga wo aa jaega
-        if(!user)
-            return res.status(404).send()
-        res.send(user)    
+        // if(!user)
+        //     return res.status(404).send()
+        await req.user.remove()
+        res.send(req.user)    
     }
     catch(e)
     {

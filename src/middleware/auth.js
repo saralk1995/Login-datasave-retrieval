@@ -15,6 +15,7 @@ const auth = async (req, res, next) => {
             throw new Error()
         }
 
+        req.token = token   //ye isliye jis se delete karte waqt hame pata hp hame kaunsa token delete karna hy
         req.user = user     //ye route ko user de dega to route ko fir wapis se user dhundne ki jarurat nai
         next()
     } catch (e) {
@@ -22,4 +23,4 @@ const auth = async (req, res, next) => {
     }
 }
 
-module.exports = auth
+module.exports = auth   
