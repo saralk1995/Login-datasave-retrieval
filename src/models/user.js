@@ -2,6 +2,7 @@ const mongoose = require('mongoose')
 const validator = require('validator')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const Task = require('./task') //ye isliye yaha dala kyunki ye remove wale middleware me use ho rha
 const userSchema = new mongoose.Schema({   //yaha par alag se schema banakar usey mongoose.model ko 
     name:                                  //isliye pass kiya hy kyunki hame middleware ka use karna hy 
     {                                      //passsword validation k liye.Pehle ham direct json pass kar 
@@ -54,6 +55,15 @@ const userSchema = new mongoose.Schema({   //yaha par alag se schema banakar use
         }
     ]
 
+})
+//Task aur User k bich me relationship create karne k liye
+//ham ek virtual field nbana rhe yaha jo Task model ko refer kar rha
+//aur wo locall user model me _id use kar rha 
+//aur Task Model me wo owner field se link ho rha
+userSchema.virtual('tasks',{
+    ref:'Task',
+    localField:'_id',
+    foreignField:'owner'
 })
  //ab hame userSchema par 2 method milte hy pre aur post
  //pre wala method jab chalega agar ham koi chj db me save
@@ -116,5 +126,12 @@ userSchema.methods.toJSON = function()
     delete userObject.tokens
     return userObject
 }
+//ek aur ham middleware function bana rhe isme agar user delete hua to us se related sare task delete ho jaenge
+userSchema.pre('remove',async function(next) 
+{
+    const user = this
+    await Task.deleteMany({owner:user._id}) //is se user_id ko ham task me dekhkar sare task delete kar denge
+    next()
+})
 const User = mongoose.model('User',userSchema)
 module.exports = User
